@@ -1,0 +1,89 @@
+---
+AWSTemplateFormatVersion: '2010-09-09'
+Description: AWS CloudFormation Template that creates IAM user and S3 bucket for them.
+Parameters:
+  AccessControl:
+    Type: String
+    Description: Default permissions for the bucket
+    AllowedValues:
+    - Private
+    - PublicRead
+    - PublicReadWrite
+    - AuthenticatedRead
+    - LogDeliveryWrite
+    - BucketOwnerRead
+    - BucketOwnerFullControl
+    Default: Private
+  UserName:
+    Type: String
+    Description: User name
+  BucketName:
+    Type: String
+    Description: Bucket name
+  DefaultPassword:
+    Type: String
+    Default: lionelmessi10
+    Description: Default Password for the AWS Console, that needs to be changed
+Resources:
+  IAMUser:
+    Type: AWS::IAM::User
+    Properties:
+      UserName:
+        Ref: UserName
+      LoginProfile:
+        Password:
+          Ref: DefaultPassword
+        PasswordResetRequired: true
+  IAMAcessKey:
+    Type: AWS::IAM::AccessKey
+    Properties:
+      UserName:
+        Ref: IAMUser
+  S3Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      AccessControl:
+        Ref: AccessControl
+      BucketName:
+        Ref: BucketName
+  IAMPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: S3BucketPermissions
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Sid: S3BucketPermissions
+          Effect: Allow
+          Action:
+          - s3:*
+          Resource:
+          - Fn::Join:
+            - ''
+            - - 'arn:aws:s3:::'
+              - Ref: S3Bucket
+          - Fn::Join:
+            - ''
+            - - 'arn:aws:s3:::'
+              - Ref: S3Bucket
+              - "/*"
+      Users:
+      - Ref: IAMUser
+Outputs:
+  Region:
+    Value:
+      Ref: AWS::Region
+  Username:
+    Value:
+      Ref: IAMUser
+  AWSAccessKeyId:
+    Value:
+      Ref: IAMAcessKey
+  AWSSecretAccessKey:
+    Value:
+      Fn::GetAtt:
+      - IAMAcessKey
+      - SecretAccessKey
+  BucketName:
+    Value:
+      Ref: S3Bucket
