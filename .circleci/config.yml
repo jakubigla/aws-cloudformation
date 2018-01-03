@@ -1,11 +1,31 @@
 version: 2
 jobs:
-    build:
-        docker:
-            - image: garland/aws-cli-docker
-        steps:
-            - checkout
+  test:
+    docker:
+      - image: sdesbure/yamllint
+    steps:
+      - checkout
 
-            - run:
-                name: Deploy to S3
-                command: aws --region eu-west-2 s3 sync ./templates s3://jakubigla-cf-templates/ --delete
+      - run:
+          name: Lint templates
+          command: yamllint ./templates/*.y?ml
+  deploy:
+    docker:
+      - image: garland/aws-cli-docker
+    steps:
+      - checkout
+
+      - run:
+          name: Deploy to S3
+          command: aws --region eu-west-2 s3 sync ./templates s3://jakubigla-cf-templates/ --delete
+
+
+
+workflows:
+  version: 2
+  build_and_test:
+    jobs:
+      - test
+      - deploy:
+          requires:
+            - test

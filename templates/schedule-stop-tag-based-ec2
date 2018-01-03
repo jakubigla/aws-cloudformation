@@ -1,0 +1,75 @@
+---
+AWSTemplateFormatVersion: '2010-09-09'
+Parameters:
+Resources:
+  LambdaIAMRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service: lambda.amazonaws.com
+          Action: sts:AssumeRole
+      Path: "/"
+      Policies:
+      - PolicyName: StopInstances
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Sid: EC2StopInstances
+            Action:
+            - ec2:StopInstances
+            Effect: Allow
+            Resource: "*"
+  LambdaFunction:
+    Properties:
+      Code:
+        ZipFile: |
+          def handler(event, context):
+              print "test"
+      Description: stop or terminate EC2 instances that have a specific tag in response
+        to AWS health events
+      Handler: index.handler
+      Role:
+        Fn::GetAtt:
+        - LambdaIAMRole
+        - Arn
+      Runtime: python2.7
+      Timeout: 120
+      Environment:
+        Variables:
+          DRY_RUN:
+            Ref: DryRun
+          EC2_ACTION:
+            Ref: Action
+          TAG_KEY:
+            Ref: TagKey
+          TAG_VALUE:
+            Ref: TagValue
+    Type: AWS::Lambda::Function
+  LambdaPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName:
+        Fn::GetAtt:
+        - LambdaFunction
+        - Arn
+      Action: lambda:InvokeFunction
+      Principal: events.amazonaws.com
+      SourceArn:
+        Fn::GetAtt:
+        - CloudWatchEventRule
+        - Arn
+  CloudWatchEventRule:
+    Type: AWS::Events::Rule
+    Properties:
+      ScheduleExpression: cron(0 0 * * ? *)
+      State: ENABLED
+      Targets:
+      - Arn:
+          Fn::GetAtt:
+          - LambdaFunction
+          - Arn
+        Id: StopInstancesFunction
