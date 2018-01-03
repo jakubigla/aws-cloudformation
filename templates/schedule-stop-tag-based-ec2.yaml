@@ -29,8 +29,8 @@ Resources:
         ZipFile: |
           def handler(event, context):
               print "test"
-      Description: stop or terminate EC2 instances that have a specific tag in response
-        to AWS health events
+      Description: |
+        Stop or terminate EC2 instances that have a specific tag
       Handler: index.handler
       Role:
         Fn::GetAtt:
