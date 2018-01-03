@@ -4,6 +4,8 @@ jobs:
         docker:
             - image: garland/aws-cli-docker
         steps:
+            - checkout
+
             - run:
                 name: Setting Signature Version 4 for S3 Request Authentication
                 command: aws configure set default.s3.signature_version s3v4
@@ -11,4 +13,4 @@ jobs:
             - run:
                 name: Deploy to S3
                 command: |
-                    aws --region eu-west-2 s3 sync templates s3://jakubigla-cf-templates/ --delete
+                    aws --region eu-west-2 s3 sync ./templates s3://jakubigla-cf-templates/ --delete
