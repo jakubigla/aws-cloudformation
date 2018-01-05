@@ -1,5 +1,8 @@
 ---
 AWSTemplateFormatVersion: '2010-09-09'
+Description: |
+  AWS CloudFormation Template that creates a Lambda function,
+  which stops particular EC2 instances based on CloudWatch schedule
 Resources:
   LambdaIAMRole:
     Type: AWS::IAM::Role
@@ -27,6 +30,7 @@ Resources:
                   - arn:aws:logs:*:*:*
               - Sid: EC2StopInstances
                 Action:
+                  - ec2:DescribeInstances
                   - ec2:StopInstances
                 Effect: Allow
                 Resource: "*"
@@ -34,8 +38,17 @@ Resources:
     Properties:
       Code:
         ZipFile: |
+          import boto3
+
           def handler(event, context):
-              print "test"
+              ec2       = boto3.resource('ec2', region_name='eu-west-2')
+              filters   = []
+              instances = []
+
+              for eventTag in event['tags']:
+                  filters.append({'Name': 'tag:' + eventTag['key'], 'Values': [eventTag['value']]})
+
+              ec2.instances.filter(Filters=filters).stop()
       Description: |
         Stop or terminate EC2 instances that have a specific tag
       Handler: index.handler
@@ -64,9 +77,25 @@ Resources:
     Properties:
       ScheduleExpression: cron(0 0 * * ? *)
       State: ENABLED
+      Description: |
+        Schedule stop of EC2 instances with the following tags:
+        ProjectName=CulesWorld, Role=GitlabRunner
       Targets:
         - Arn:
             Fn::GetAtt:
               - LambdaFunction
               - Arn
           Id: StopInstancesFunction
+          Input: |
+            {
+              "tags": [
+                {
+                  "key": "Role",
+                  "value": "GitlabRunner"
+                },
+                {
+                  "key": "ProjectName",
+                  "value": "CulesWorld"
+                }
+              ]
+            }
