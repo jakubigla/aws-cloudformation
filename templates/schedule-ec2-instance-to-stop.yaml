@@ -46,7 +46,12 @@ Resources:
               instances = []
 
               for eventTag in event['tags']:
-                  filters.append({'Name': 'tag:' + eventTag['key'], 'Values': [eventTag['value']]})
+                  filters.append(
+                    {
+                      'Name': 'tag:' + eventTag['key'],
+                      'Values': [eventTag['value']]
+                    }
+                  )
 
               ec2.instances.filter(Filters=filters).stop()
       Description: |
